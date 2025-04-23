@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Search, ArrowUp, ArrowDown, MessageSquare } from "lucide-react";
 import AppLayout from "@/components/Layout/AppLayout";
+import { CreateThreadModal } from "@/components/Forums/CreateThreadModal";
+import { toast } from "sonner";
 
 interface ForumTopic {
   id: number;
@@ -32,9 +34,10 @@ interface ForumThread {
 
 const Forums = () => {
   const [searchQuery, setSearchQuery] = useState("");
+  const [createThreadOpen, setCreateThreadOpen] = useState(false);
 
   // Mock data for forum topics
-  const forumTopics: ForumTopic[] = [
+  const [forumTopics, setForumTopics] = useState<ForumTopic[]>([
     { 
       id: 1, 
       title: "Mathematics", 
@@ -80,10 +83,10 @@ const Forums = () => {
       lastPostBy: "Admin", 
       lastPostTime: "3 days ago" 
     },
-  ];
+  ]);
 
   // Mock data for recent threads
-  const recentThreads: ForumThread[] = [
+  const [recentThreads, setRecentThreads] = useState<ForumThread[]>([
     { 
       id: 1, 
       title: "Need help with differential equations", 
@@ -128,10 +131,10 @@ const Forums = () => {
       datePosted: "1 day ago", 
       lastReply: "6 hours ago" 
     },
-  ];
+  ]);
 
   // Mock data for popular threads
-  const popularThreads: ForumThread[] = [
+  const [popularThreads, setPopularThreads] = useState<ForumThread[]>([
     { 
       id: 5, 
       title: "Comprehensive guide to exam preparation", 
@@ -176,7 +179,37 @@ const Forums = () => {
       datePosted: "5 days ago", 
       lastReply: "1 hour ago" 
     },
-  ];
+  ]);
+
+  const handleVote = (threadId: number, value: number, threadType: 'recent' | 'popular') => {
+    const updateThreads = (threads: ForumThread[]) =>
+      threads.map((thread) =>
+        thread.id === threadId ? { ...thread, votes: thread.votes + value } : thread
+      );
+
+    if (threadType === 'recent') {
+      setRecentThreads(updateThreads(recentThreads));
+    } else {
+      setPopularThreads(updateThreads(popularThreads));
+    }
+  };
+
+  const handleCreateThread = (values: any) => {
+    const newThread: ForumThread = {
+      id: Date.now(),
+      title: values.title,
+      author: "CurrentUser", // In a real app, this would be the current user's username
+      category: values.category,
+      replies: 0,
+      views: 1,
+      votes: 0,
+      datePosted: "just now",
+      lastReply: "just now",
+    };
+    
+    setRecentThreads([newThread, ...recentThreads]);
+    toast.success("Thread created successfully!");
+  };
 
   const getCategoryColor = (category: string) => {
     const colors: Record<string, string> = {
@@ -222,7 +255,10 @@ const Forums = () => {
             <h1 className="text-2xl font-bold">Discussion Forums</h1>
             <p className="text-muted-foreground">Collaborate and discuss with other students</p>
           </div>
-          <Button className="bg-purple-600 hover:bg-purple-700">
+          <Button 
+            className="bg-purple-600 hover:bg-purple-700"
+            onClick={() => setCreateThreadOpen(true)}
+          >
             Create New Thread
           </Button>
         </div>
@@ -283,11 +319,21 @@ const Forums = () => {
                   <CardContent className="p-4">
                     <div className="flex items-start gap-4">
                       <div className="flex flex-col items-center space-y-1">
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8"
+                          onClick={() => handleVote(thread.id, 1, 'recent')}
+                        >
                           <ArrowUp className="h-4 w-4" />
                         </Button>
                         <span className="text-sm font-medium">{thread.votes}</span>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8"
+                          onClick={() => handleVote(thread.id, -1, 'recent')}
+                        >
                           <ArrowDown className="h-4 w-4" />
                         </Button>
                       </div>
@@ -320,11 +366,21 @@ const Forums = () => {
                   <CardContent className="p-4">
                     <div className="flex items-start gap-4">
                       <div className="flex flex-col items-center space-y-1">
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8"
+                          onClick={() => handleVote(thread.id, 1, 'popular')}
+                        >
                           <ArrowUp className="h-4 w-4" />
                         </Button>
                         <span className="text-sm font-medium">{thread.votes}</span>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8"
+                          onClick={() => handleVote(thread.id, -1, 'popular')}
+                        >
                           <ArrowDown className="h-4 w-4" />
                         </Button>
                       </div>
@@ -350,6 +406,13 @@ const Forums = () => {
             </div>
           </TabsContent>
         </Tabs>
+        
+        {/* Create Thread Modal */}
+        <CreateThreadModal
+          open={createThreadOpen}
+          onOpenChange={setCreateThreadOpen}
+          onSubmit={handleCreateThread}
+        />
       </div>
     </AppLayout>
   );

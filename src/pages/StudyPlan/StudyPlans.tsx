@@ -8,6 +8,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Calendar } from "@/components/ui/calendar";
 import { Calendar as CalendarIcon, Plus, Book, CheckCircle, Clock } from "lucide-react";
 import AppLayout from "@/components/Layout/AppLayout";
+import { CreatePlanModal } from "@/components/StudyPlan/CreatePlanModal";
+import { CreateTaskModal } from "@/components/StudyPlan/CreateTaskModal";
+import { toast } from "sonner";
 
 // Study plan interface
 interface StudyPlan {
@@ -36,9 +39,12 @@ const priorityColors = {
 
 const StudyPlans = () => {
   const [date, setDate] = useState<Date | undefined>(new Date());
+  const [createPlanOpen, setCreatePlanOpen] = useState(false);
+  const [createTaskOpen, setCreateTaskOpen] = useState(false);
+  const [selectedPlanId, setSelectedPlanId] = useState<number | null>(null);
   
   // Mock data for study plans
-  const studyPlans: StudyPlan[] = [
+  const [studyPlans, setStudyPlans] = useState<StudyPlan[]>([
     {
       id: 1,
       title: "Final Exam Prep - Calculus",
@@ -82,21 +88,87 @@ const StudyPlans = () => {
         { id: 306, title: "Format citations", completed: false, duration: "1 hour", priority: "low" },
       ]
     }
-  ];
+  ]);
 
   // Mock data for today's tasks
-  const todayTasks = [
+  const [tasks, setTasks] = useState([
     { id: 101, title: "Study applications of integrals", subject: "Mathematics", duration: "2 hours", time: "10:00 AM - 12:00 PM", completed: false },
     { id: 201, title: "Implement hash table", subject: "Computer Science", duration: "2 hours", time: "2:00 PM - 4:00 PM", completed: false },
     { id: 301, title: "Write introduction", subject: "Literature", duration: "2 hours", time: "4:30 PM - 6:30 PM", completed: false },
-  ];
-
-  const [tasks, setTasks] = useState(todayTasks);
+  ]);
 
   const toggleTaskCompletion = (taskId: number) => {
     setTasks(tasks.map(task => 
       task.id === taskId ? { ...task, completed: !task.completed } : task
     ));
+  };
+
+  const togglePlanTaskCompletion = (planId: number, taskId: number) => {
+    setStudyPlans(studyPlans.map(plan => {
+      if (plan.id !== planId) return plan;
+      
+      const updatedTasks = plan.tasks.map(task => 
+        task.id === taskId ? { ...task, completed: !task.completed } : task
+      );
+      
+      const completedTasks = updatedTasks.filter(task => task.completed).length;
+      const progress = Math.round((completedTasks / updatedTasks.length) * 100);
+      
+      return {
+        ...plan,
+        tasks: updatedTasks,
+        progress
+      };
+    }));
+  };
+
+  const handleCreatePlan = (values: any) => {
+    const newPlan: StudyPlan = {
+      id: Date.now(),
+      title: values.title,
+      subject: values.subject,
+      deadline: new Date(values.deadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+      progress: 0,
+      tasks: []
+    };
+    
+    setStudyPlans([...studyPlans, newPlan]);
+    toast.success("Study plan created successfully!");
+  };
+
+  const handleCreateTask = (values: any) => {
+    if (!selectedPlanId) return;
+    
+    const newTaskId = Date.now();
+    
+    setStudyPlans(studyPlans.map(plan => {
+      if (plan.id !== selectedPlanId) return plan;
+      
+      const newTask = {
+        id: newTaskId,
+        title: values.title,
+        completed: false,
+        duration: values.duration,
+        priority: values.priority as "high" | "medium" | "low",
+      };
+      
+      const updatedTasks = [...plan.tasks, newTask];
+      const completedTasks = updatedTasks.filter(task => task.completed).length;
+      const progress = Math.round((completedTasks / updatedTasks.length) * 100);
+      
+      return {
+        ...plan,
+        tasks: updatedTasks,
+        progress
+      };
+    }));
+    
+    toast.success("Task added successfully!");
+  };
+
+  const openAddTaskModal = (planId: number) => {
+    setSelectedPlanId(planId);
+    setCreateTaskOpen(true);
   };
 
   // Calculate remaining study time
@@ -127,7 +199,10 @@ const StudyPlans = () => {
             <h1 className="text-2xl font-bold">Study Plans</h1>
             <p className="text-muted-foreground">Organize and track your study schedule</p>
           </div>
-          <Button className="bg-purple-600 hover:bg-purple-700">
+          <Button 
+            className="bg-purple-600 hover:bg-purple-700"
+            onClick={() => setCreatePlanOpen(true)}
+          >
             <Plus className="mr-2 h-4 w-4" />
             Create New Plan
           </Button>
@@ -224,9 +299,15 @@ const StudyPlans = () => {
                         {plan.tasks.map((task) => (
                           <div key={task.id} className="flex items-center text-sm">
                             {task.completed ? (
-                              <CheckCircle className="h-4 w-4 mr-2 text-green-500" />
+                              <CheckCircle 
+                                className="h-4 w-4 mr-2 text-green-500 cursor-pointer" 
+                                onClick={() => togglePlanTaskCompletion(plan.id, task.id)}
+                              />
                             ) : (
-                              <div className="h-4 w-4 mr-2 rounded-full border border-gray-300" />
+                              <div 
+                                className="h-4 w-4 mr-2 rounded-full border border-gray-300 cursor-pointer" 
+                                onClick={() => togglePlanTaskCompletion(plan.id, task.id)}
+                              />
                             )}
                             <span className={task.completed ? "text-muted-foreground line-through" : ""}>
                               {task.title}
@@ -240,6 +321,17 @@ const StudyPlans = () => {
                             </span>
                           </div>
                         ))}
+                        
+                        {/* Add task button */}
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="w-full mt-2 text-xs"
+                          onClick={() => openAddTaskModal(plan.id)}
+                        >
+                          <Plus className="h-3 w-3 mr-1" />
+                          Add Task
+                        </Button>
                       </div>
                     </CardContent>
                   </Card>
@@ -258,6 +350,20 @@ const StudyPlans = () => {
             </Tabs>
           </div>
         </div>
+        
+        {/* Modals */}
+        <CreatePlanModal 
+          open={createPlanOpen} 
+          onOpenChange={setCreatePlanOpen} 
+          onSubmit={handleCreatePlan} 
+        />
+        
+        <CreateTaskModal 
+          open={createTaskOpen} 
+          onOpenChange={setCreateTaskOpen} 
+          onSubmit={handleCreateTask}
+          planId={selectedPlanId || undefined}
+        />
       </div>
     </AppLayout>
   );
