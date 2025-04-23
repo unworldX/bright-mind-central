@@ -3,7 +3,7 @@ import { useState, ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { 
-  Home, Book, Video, Calendar, Bell, MessageSquare, User, Settings, LogOut, Menu, X, Search, BookOpen
+  Home, Book, Calendar, Bell, MessageSquare, User, Settings, LogOut, Menu, X, Search, BookOpen
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -110,7 +110,7 @@ const AppLayout = ({ children }: AppLayoutProps) => {
       {/* Main Content Area */}
       <main className="flex-1">
         {/* Mobile Header */}
-        <header className="flex h-16 items-center gap-4 border-b px-4 lg:px-6">
+        <header className="flex h-16 items-center gap-4 border-b px-4 lg:px-6 sticky top-0 bg-background z-10">
           <Button 
             variant="ghost" 
             size="icon" 
@@ -132,9 +132,12 @@ const AppLayout = ({ children }: AppLayoutProps) => {
         </header>
         
         {/* Page Content */}
-        <div className="container mx-auto">
+        <div className="container mx-auto py-4 px-4 pb-16">
           {children}
         </div>
+
+        {/* Safe area inset for mobile devices */}
+        <div className="h-8 lg:hidden"></div>
       </main>
     </div>
   );
